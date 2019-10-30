@@ -48,6 +48,10 @@ class Board(object):
         colData.append([])
       self.data.append(colData)
 
+    # Initialize the rule set.
+    self.ruleSet = set()
+    self.ruleSet.add(Rule('text', 'push'))
+
   # invalid : int * int -> bool
   # Checks if a given index is out of bound.
   def invalid(self, row, col):
@@ -123,9 +127,22 @@ class Text(Obj):
   # Init : str * int * int -> void
   def __init__(self, typ, row, col):
     super(Text, self).__init__(typ, row, col)
-    self.path = 'sprites/text_' + self.type + '.png'
-    self.textType = app.typeDict[self.type]
+    self.type = 'text'
+    self.textValue = typ
+    self.path = 'sprites/text_' + self.textValue + '.png'
+    self.textType = app.typeDict[self.textValue]
     self.isActive = False
+
+# The rule class.
+# Each instance is a rule with a subject and a property.
+# Property can be rules or objects.
+class Rule(object):
+  # Init : str * str * str -> void
+  def __init__(self, sub, prop):
+    self.sub = sub
+    self.prop = prop
+    self.type = app.typeDict[self.prop] # OBJ-OBJ rule or OBJ-RUL rule.
+    self.id = self.sub + ' is ' + self.prop # For easy search and removal
 
 # initDict : void -> void
 # The type dictionary. For convenience.
@@ -133,8 +150,12 @@ class Text(Obj):
 def initDict():
   app.typeDict = dict()
   app.typeDict['baba'] = 'obj'
+  app.typeDict['text'] = 'obj'
+
   app.typeDict['is'] = 'conj'
+
   app.typeDict['you'] = 'rule'
+  app.typeDict['push'] = 'rule'
 
 main()
 
