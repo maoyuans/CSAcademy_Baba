@@ -7,25 +7,29 @@ app.background = rgb(24, 24, 24)
 # Why not.
 def main():
   initDict()
-  app.board = Board(12, 20)
-  app.board.drawGrid()
-  app.board.add(Obj('baba', 1, 1))
-  app.board.add(Text('baba', 2, 4))
-  app.board.drawBoard()
 
-  #test()
+  test()
 
 # test : void -> void
 # Why not?
 def test():
-  app.board.ruleSet.add(Rule('baba', 'you'))
-  app.board.updateRule()
-  print(len(app.board.catGet('baba')))
-  print(len(app.board.catGet('you')))
-  app.board.ruleSet.add(Rule('rock', 'push'))
-  app.board.updateRule()
-  print(len(app.board.catGet('rock')))
-  print(len(app.board.catGet('push')))
+
+  loadBoard('levels/00.txt')
+
+  #app.board = Board(12, 20)
+  app.board.drawGrid()
+  #app.board.add(Obj('baba', 1, 1))
+  #app.board.add(Text('baba', 2, 4))
+  app.board.drawBoard()
+
+  #app.board.ruleSet.add(Rule('baba', 'you'))
+  #app.board.updateRule()
+  #print(len(app.board.catGet('baba')))
+  #print(len(app.board.catGet('you')))
+  #app.board.ruleSet.add(Rule('rock', 'push'))
+  #app.board.updateRule()
+  #print(len(app.board.catGet('rock')))
+  #print(len(app.board.catGet('push')))
 
 # findFit : int * int -> int
 # Returns the best grid size for the current board setting
@@ -88,8 +92,8 @@ class Board(object):
   # Returns the top-left corner point of a grid given its index on the board.
   def getCorner(self, row, col):
     if (self.invalid(row, col)): raise IndexError("GridIndexOutOfBound")
-    return (self.origin[0] + row * self.sqSize,
-      self.origin[1] + col * self.sqSize)
+    return (self.origin[0] + col * self.sqSize,
+      self.origin[1] + row * self.sqSize)
 
   # add : Obj -> void
   # Adds an object into a grid on the board, according to its properties.
@@ -250,6 +254,38 @@ class Rule(object):
     self.type = app.typeDict[self.prop] # OBJ-OBJ rule or OBJ-RUL rule.
     self.id = self.sub + ' is ' + self.prop # For easy search and removal
 
+# loadBoard : str -> void
+# Parse the input file to load a board.
+# The first line should be a pair of integers, separated by spaces, that
+# records the dimension of the board
+# The following lines should each specify an object type and the location of
+# all instances of the object type.
+# Text objects have 'text_' before their type.
+def loadBoard(path):
+  file = open(path)
+  lines = file.readlines()
+  dim = lines[0].split(' ')
+  row = int(dim[0])
+  col = int(dim[1])
+  board = Board(row, col)
+
+  for line in lines[1:]:
+    lst = line.split(' ')
+    typ = lst[0]
+    i = 1
+
+    while (i < len(lst)):
+      row = int(lst[i])
+      col = int(lst[i+1])
+      i += 2
+
+      if ('_' in typ):
+        board.add(Text(typ[5:], row, col))
+      else:
+        board.add(Obj(typ, row, col))
+
+  app.board = board
+
 # initDict : void -> void
 # The type dictionary. For convenience.
 # Every key is a piece of text, corresponding value dictates what type it is.
@@ -258,11 +294,15 @@ def initDict():
   app.typeDict['baba'] = 'obj'
   app.typeDict['text'] = 'obj'
   app.typeDict['rock'] = 'obj'
+  app.typeDict['flag'] = 'obj'
+  app.typeDict['wall'] = 'obj'
 
   app.typeDict['is'] = 'conj'
 
   app.typeDict['you'] = 'rule'
+  app.typeDict['win'] = 'rule'
   app.typeDict['push'] = 'rule'
+  app.typeDict['stop'] = 'rule'
 
 main()
 
