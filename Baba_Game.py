@@ -14,7 +14,7 @@ def main():
 # Why not?
 def test():
 
-  loadBoard('levels/00.txt')
+  loadBoard('levels/07.txt')
 
   #app.board = Board(12, 20)
   app.board.drawGrid()
@@ -296,13 +296,20 @@ def initDict():
   app.typeDict['rock'] = 'obj'
   app.typeDict['flag'] = 'obj'
   app.typeDict['wall'] = 'obj'
+  app.typeDict['water'] = 'obj'
+  app.typeDict['skull'] = 'obj'
+  app.typeDict['pillar'] = 'obj'
+  app.typeDict['crab'] = 'obj'
 
   app.typeDict['is'] = 'conj'
+  app.typeDict['and'] = 'conj'
 
   app.typeDict['you'] = 'rule'
   app.typeDict['win'] = 'rule'
   app.typeDict['push'] = 'rule'
   app.typeDict['stop'] = 'rule'
+  app.typeDict['sink'] = 'rule'
+  app.typeDict['defeat'] = 'rule'
 
 main()
 

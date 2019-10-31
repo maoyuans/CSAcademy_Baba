@@ -1,0 +1,11 @@
+11 16
+baba 9 1
+flag 7 11
+skull 1 6 1 7 1 8 1 9 1 10 1 11 1 12 1 13 1 14 2 14 3 14 4 14 5 14 6 14 7 14 8 14 9 14 9 13 9 12 9 11 9 10 9 9 9 8 9 7 9 6 8 6 7 6 6 6 5 6 4 6 3 6 2 6
+text_baba 1 1
+text_you 1 3
+text_flag 2 1
+text_win 2 3
+text_skull 3 8
+text_defeat 5 8
+text_is 1 2 2 2 4 8
