@@ -14,22 +14,18 @@ def main():
 # Why not?
 def test():
 
-  loadBoard('levels/07.txt')
+  loadBoard('levels/00.txt')
 
-  #app.board = Board(12, 20)
   app.board.drawGrid()
-  #app.board.add(Obj('baba', 1, 1))
-  #app.board.add(Text('baba', 2, 4))
   app.board.drawBoard()
-
-  #app.board.ruleSet.add(Rule('baba', 'you'))
-  #app.board.updateRule()
-  #print(len(app.board.catGet('baba')))
-  #print(len(app.board.catGet('you')))
-  #app.board.ruleSet.add(Rule('rock', 'push'))
-  #app.board.updateRule()
-  #print(len(app.board.catGet('rock')))
-  #print(len(app.board.catGet('push')))
+  app.board.detectRule()
+  app.board.updateRule()
+  
+  #for key in app.board.catalog:
+  #  print(key + ' ' + str(len(app.board.catalog[key])))
+  #print(len(app.board.ruleSet))
+  #for rule in app.board.ruleSet:
+  #  print(rule.sub + ' ' + rule.prop)
 
 # findFit : int * int -> int
 # Returns the best grid size for the current board setting
@@ -103,6 +99,8 @@ class Board(object):
     (row, col) = (obj.row, obj.col)
     self.data[row][col].append(obj)
     self.catAdd(obj.type, obj)
+    if (isinstance(obj, Text) and obj.textValue == 'is'):
+      self.catAdd('is', obj)
 
   # catGet : str -> Obj set
   # Queries the catalog and return the set of objects with specified type.
@@ -125,6 +123,65 @@ class Board(object):
       self.catalog[typ] = set()
     if (obj in self.catalog[typ]):
       self.catalog[typ].remove(obj)
+
+  # searchRule : int * int * int * int -> Text set
+  # Searches in one direction until an invalid grid appears.
+  def searchRule(self, row, col, drow, dcol):
+    txSet = set()
+    valid = True
+    lfAnd = False
+
+    while (valid):
+      valid = False
+      row += drow
+      col += dcol
+      if (self.invalid(row, col)): break
+      objLst = self.data[row][col]
+      for obj in objLst:
+        if (isinstance(obj, Text)):
+          if (lfAnd):
+            if (obj.textValue == 'and'):
+              valid = True
+              break
+          else:
+            if (obj.textType != 'conj'):
+              valid = True
+              txSet.add(obj)
+              break
+      lfAnd = not lfAnd
+
+    return txSet
+
+  # detectRule : void -> void
+  # Primes an detection of all rules present on the board.
+  def detectRule(self):
+    newRuleSet = set()
+
+    isSet = self.catGet('is')
+    for obj in isSet:
+      crow = obj.row
+      ccol = obj.col
+      
+      subSet = self.searchRule(crow, ccol, 0, -1)
+      propSet = self.searchRule(crow, ccol, 0, 1)
+      for sub in subSet:
+        if (sub.textType != 'obj'):
+          continue
+        for prop in propSet:
+          newRuleSet.add(Rule(sub.textValue, prop.textValue))
+
+      subSet = self.searchRule(crow, ccol, -1, 0)
+      propSet = self.searchRule(crow, ccol, 1, 0)
+      for sub in subSet:
+        if (sub.textType != 'obj'):
+          continue
+        for prop in propSet:
+          newRuleSet.add(Rule(sub.textValue, prop.textValue))
+
+    self.deletedRules = self.ruleSet.difference(newRuleSet)
+    self.ruleSet = newRuleSet
+
+
 
   # updateRule : void -> void
   # Primes an update of all properties on all objects.
@@ -242,6 +299,7 @@ class Text(Obj):
     self.path = 'sprites/text_' + self.textValue + '.png'
     self.textType = app.typeDict[self.textValue]
     self.isActive = False
+    self.isIs = (self.textValue == 'is')
 
 # The rule class.
 # Each instance is a rule with a subject and a property.
