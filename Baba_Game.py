@@ -3,7 +3,7 @@ import copy
 
 app.background = rgb(24, 24, 24)
 
-# main: void -> void
+# main : void -> void
 # Why not.
 def main():
   initDict()
@@ -12,6 +12,20 @@ def main():
   app.board.add(Obj('baba', 1, 1))
   app.board.add(Text('baba', 2, 4))
   app.board.drawBoard()
+
+  #test()
+
+# test : void -> void
+# Why not?
+def test():
+  app.board.ruleSet.add(Rule('baba', 'you'))
+  app.board.updateRule()
+  print(len(app.board.catGet('baba')))
+  print(len(app.board.catGet('you')))
+  app.board.ruleSet.add(Rule('rock', 'push'))
+  app.board.updateRule()
+  print(len(app.board.catGet('rock')))
+  print(len(app.board.catGet('push')))
 
 # findFit : int * int -> int
 # Returns the best grid size for the current board setting
@@ -52,6 +66,12 @@ class Board(object):
     self.ruleSet = set()
     self.ruleSet.add(Rule('text', 'push'))
 
+    # Initialize the set for deleted rules
+    self.deletedRules = set()
+
+    # Initialize the catalog of things
+    self.catalog = dict()
+
   # invalid : int * int -> bool
   # Checks if a given index is out of bound.
   def invalid(self, row, col):
@@ -78,6 +98,61 @@ class Board(object):
   def add(self, obj):
     (row, col) = (obj.row, obj.col)
     self.data[row][col].append(obj)
+    self.catAdd(obj.type, obj)
+
+  # catGet : str -> Obj set
+  # Queries the catalog and return the set of objects with specified type.
+  def catGet(self, typ):
+    if (not typ in self.catalog):
+      self.catalog[typ] = set()
+    return self.catalog[typ]
+
+  # catAdd : str * Obj -> void
+  # Adds the object into the catalog under specified type.
+  def catAdd(self, typ, obj):
+    if (not typ in self.catalog):
+      self.catalog[typ] = set()
+    self.catalog[typ].add(obj)
+
+  # catRemove : str * Obj -> void
+  # Removes the object from the catalog under specified type.
+  def catRemove(self, typ, obj):
+    if (not typ in self.catalog):
+      self.catalog[typ] = set()
+    if (obj in self.catalog[typ]):
+      self.catalog[typ].remove(obj)
+
+  # updateRule : void -> void
+  # Primes an update of all properties on all objects.
+  def updateRule(self):
+    # Apply all OBJ-OBJ rules.
+    for rule in self.ruleSet:
+      if (rule.type == 'obj'):
+        if (rule.sub == rule.prop):
+          continue
+
+        catSet = self.catGet(rule.sub)
+        for obj in catSet:
+          obj.updateType(rule.prop)
+          obj.draw()
+          self.catRemove(rule.sub, obj)
+          self.catAdd(rule.prop, obj)
+
+    for rule in self.deletedRules:
+      if (rule.type == 'rule'):
+        catSet = self.catGet(rule.sub)
+        for obj in catSet:
+          obj.setProp(rule.prop, False)
+          self.catRemove(rule.prop, obj)
+
+    self.deletedRules.clear()
+
+    for rule in self.ruleSet:
+      if (rule.type == 'rule'):
+        catSet = self.catGet(rule.sub)
+        for obj in catSet:
+          obj.setProp(rule.prop, True)
+          self.catAdd(rule.prop, obj)
 
   # drawGrid : void -> void
   # Draws a grid, duh.
@@ -98,7 +173,7 @@ class Board(object):
       for j in range(self.col):
         for obj in self.data[i][j]:
           (x, y) = self.getCorner(i, j)
-          obj.image = Image(obj.path, x, y)
+          obj.draw(x, y)
 
 
 # The object class. 
@@ -120,6 +195,37 @@ class Obj(object):
     self.isSink = False
     self.isOpen = False
     self.isShut = False
+
+  # changeType : str -> void
+  # Change the type of an object.
+  def changeType(self, typ):
+    self.type = typ.lower()
+    self.path = 'sprites/' + self.type + '.png'
+
+  def draw(self, x, y):
+    if (self.image):
+      self.image.visible = False
+    self.image = Image(self.path, x, y)
+
+  # setProp : str * bool -> void
+  # Sets a property of an object according to the input.
+  def setProp(self, prop, val):
+    if (prop == 'you'):
+      self.isYou = val
+    elif (prop == 'stop'):
+      self.isStop = val
+    elif (prop == 'push'):
+      self.isPush = val
+    elif (prop == 'win'):
+      self.isWin = val
+    elif (prop == 'death'):
+      self.isDeath = val
+    elif (prop == 'sink'):
+      self.isSink = val
+    elif (prop == 'open'):
+      self.isOpen = val
+    elif (prop == 'shut'):
+      self.isShut = val
 
 # The text class. A subclass of Obj.
 # Texts that constitutes rules.
@@ -151,6 +257,7 @@ def initDict():
   app.typeDict = dict()
   app.typeDict['baba'] = 'obj'
   app.typeDict['text'] = 'obj'
+  app.typeDict['rock'] = 'obj'
 
   app.typeDict['is'] = 'conj'
 
