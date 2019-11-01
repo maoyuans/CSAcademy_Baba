@@ -1,0 +1,14 @@
+11 17
+brick 5 0 5 1 5 2 5 3 5 4 5 5 5 6 5 7 5 8 5 9 5 10 5 11 5 12 5 13 5 14 5 15 5 16 4 2 3 2 4 6 3 6 4 10 3 10 4 14 3 14 6 2 7 2 6 6 7 6 6 10 7 10 6 14 7 14 4 0 4 1 4 2 6 0 6 1 6 2
+baba 5 1
+lvl-text_baba 2 2 00
+lvl-flag 2 6 01
+lvl-wall 2 10 02
+lvl-water 2 14 03
+lvl-rock 8 2 04
+lvl-skull 8 6 05
+lvl-crab 8 10 06
+lvl-algae 8 14 07
+text_baba 0 0
+text_is 0 1
+text_you 0 2

@@ -2,57 +2,68 @@ from cmu_graphics import *
 import copy
 
 app.background = rgb(24, 24, 24)
+app.endGroup = Group()
+app.end = False
+app.inMenu = True
+app.width = 1000
+app.height = 700
+#app.maxUndo = 20
+#app.undoLst = []
 
 # main : void -> void
 # Why not.
 def main():
   initDict()
-  test()
+  loadBoard('levels/menu.txt')
 
-def move(dir):
-  # for i in range(app.board.row):
-  #   for j in range(app.board.col):
-  #     for obj in (app.board.data[i][j]):
-  for obj in (app.board.catalog['you']):
-    app.board.data[obj.row][obj.col].remove(obj)
-    if(dir == 'left'):
-      obj.col -= 1
-    elif (dir == 'right'):
-      obj.col += 1
-    elif (dir == 'up'):
-      obj.row -= 1
-    else: 
-      obj.row += 1
-    
-    app.board.data[obj.row][obj.col].append(obj)
-    app.board.drawBoard()
-
-def onKeyPress(key):
-  if (key == 'left'):
-    move('left')
-  elif (key == 'right'):
-    move('right')
-  elif (key == 'up'):
-    move('up')
-  elif (key == 'down'):
-    move('down')
-
-# test : void -> void
+# debug : void -> void
 # Why not?
-def test():
+def debug():
+  for key in app.board.catalog:
+    print(key + ' ' + str(len(app.board.catalog[key])))
+  print(len(app.board.ruleSet))
+  for rule in app.board.ruleSet:
+    print(rule.sub + ' ' + rule.prop)
 
-  loadBoard('levels/test.txt')
+# onKeyPress
+# I mean, you know what this does.
+def onKeyPress(key):
+  #if (key == 'z'):
+  #  undo()
+  #  return
 
-  app.board.drawGrid()
-  app.board.drawBoard()
-  app.board.detectRule()
-  app.board.updateRule()
-  
-  #for key in app.board.catalog:
-  #  print(key + ' ' + str(len(app.board.catalog[key])))
-  #print(len(app.board.ruleSet))
-  #for rule in app.board.ruleSet:
-  #  print(rule.sub + ' ' + rule.prop)
+  # If on the end screen, press space to return to menu.
+  if (app.end):
+    if (key == 'space'):
+      app.end = False
+      app.endGroup.clear()
+      loadBoard('levels/menu.txt')
+      app.inMenu = True
+    return
+
+  # If in menu, enable level select function.
+  if (app.inMenu):
+    if (key == 'space'):
+      youSet = app.board.catGet('you')
+      for obj in youSet:
+        for obj2 in app.board.data[obj.row][obj.col]:
+          if (isinstance(obj2, Level)):
+            app.inMenu = False
+            loadBoard(obj2.lvlPath)
+            return
+
+  #app.undoLst.append(app.board.copy())
+  #if (len(app.undoLst) > app.maxUndo):
+  #  app.undoLst = app.undoLst[1:]
+
+  if (key == 'left'):
+    app.board.doMove(0, -1)
+  elif (key == 'right'):
+    app.board.doMove(0, 1)
+  elif (key == 'up'):
+    app.board.doMove(-1, 0)
+  elif (key == 'down'):
+    app.board.doMove(1, 0)
 
 # findFit : int * int -> int
 # Returns the best grid size for the current board setting
@@ -77,9 +88,9 @@ class Board(object):
     self.height = self.row * self.sqSize # Height of the board
     self.origin = (50, 50) # Subject to dynamic rescale (if I can rescale)
 
-    # Rescaling the app window itself. For now.
-    app.width = self.width + 100
-    app.height = self.height + 100
+    # Rescaling the app window itself. For now. Not working either.
+    # app.width = self.width + 100
+    # app.height = self.height + 100
 
     # Initialize the data on the board.
     self.data = []
@@ -98,6 +109,23 @@ class Board(object):
 
     # Initialize the catalog of things
     self.catalog = dict()
+
+  # copy : void -> Board
+  # Make a copy of itself.
+  # Unused. Too much trouble.
+  #def copy(self):
+  #  newBoard = Board(self.row, self.col)
+  #  print('1')
+  #  newBoard.data = copy.deepcopy(self.data)
+  #  print('2')
+  #  newBoard.ruleSet = copy.deepcopy(self.ruleSet)
+  #  print('3')
+  #  newBoard.deletedRules = copy.deepcopy(self.deletedRules)
+  #  print('4')
+  #  newBoard.catalog = copy.deepcopy(self.catalog)
+  #  print('5')
+  #  return newBoard
+
 
   # invalid : int * int -> bool
   # Checks if a given index is out of bound.
@@ -129,6 +157,15 @@ class Board(object):
     if (isinstance(obj, Text) and obj.textValue == 'is'):
       self.catAdd('is', obj)
 
+  # remove : Obj -> void
+  # Removes an object complete from the game.
+  def remove(self, obj):
+    catSet = obj.category()
+    for prop in catSet:
+      self.catRemove(prop, obj)
+    self.data[obj.row][obj.col].remove(obj)
+    obj.remove()
+
   # catGet : str -> Obj set
   # Queries the catalog and return the set of objects with specified type.
   def catGet(self, typ):
@@ -150,6 +187,49 @@ class Board(object):
       self.catalog[typ] = set()
     if (obj in self.catalog[typ]):
       self.catalog[typ].remove(obj)
+
+  # moveQuery : Obj * int * int -> bool
+  # Attempt to move an item in the direction. If there is a PUSH object 
+  # recursively attempt to move it. Return true if success.
+  def moveQuery(self, obj, drow, dcol):
+    trow = obj.row + drow
+    tcol = obj.col + dcol
+
+    if (self.invalid(trow, tcol)):
+      return False
+
+    for obj2 in self.data[trow][tcol]:
+      if (obj2.isStop):
+        return False
+      if (obj2.isPush):
+        if (not self.moveQuery(obj2, drow, dcol)): 
+          return False
+
+    self.data[obj.row][obj.col].remove(obj)
+    obj.row = trow
+    obj.col = tcol
+    self.data[obj.row][obj.col].append(obj)
+    
+    (x, y) = self.getCorner(obj.row, obj.col)
+    obj.draw(x, y)
+    return True
+
+  # doMove : int * int -> void
+  # Attempt to move every object with YOU in the direction.
+  def doMove(self, drow, dcol):
+    for obj in (app.board.catalog['you']):
+      self.moveQuery(obj, drow, dcol)
+
+    self.detectRule()
+    self.updateRule()
+    self.checkDefeat()
+    self.checkSink()
+    if (self.checkWin()):
+      endScreen(True)
+      return
+    if (self.checkFail()):
+      endScreen(False)
+      return
 
   # searchRule : int * int * int * int -> Text set
   # Searches in one direction until an invalid grid appears.
@@ -205,6 +285,7 @@ class Board(object):
         for prop in propSet:
           newRuleSet.add(Rule(sub.textValue, prop.textValue))
 
+    newRuleSet.add(Rule('text', 'push'))
     self.deletedRules = self.ruleSet.difference(newRuleSet)
     self.ruleSet = newRuleSet
 
@@ -219,10 +300,11 @@ class Board(object):
 
         catSet = self.catGet(rule.sub)
         for obj in catSet:
-          obj.updateType(rule.prop)
-          obj.draw()
-          self.catRemove(rule.sub, obj)
+          obj.changeType(rule.prop)
+          (x, y) = self.getCorner(obj.row, obj.col)
+          obj.draw(x, y)
           self.catAdd(rule.prop, obj)
+        catSet.clear()
 
     for rule in self.deletedRules:
       if (rule.type == 'rule'):
@@ -239,6 +321,70 @@ class Board(object):
         for obj in catSet:
           obj.setProp(rule.prop, True)
           self.catAdd(rule.prop, obj)
+
+  # checkDefeat : void -> void
+  # Initiate a check of whether any YOU object is on DEFEAT, and eliminate.
+  def checkDefeat(self):
+    youSet = self.catGet('you')
+    removeSet = set()
+
+    for obj in youSet:
+      for obj2 in self.data[obj.row][obj.col]:
+        if (obj2.isDefeat):
+          removeSet.add(obj)
+          break
+
+    for obj in removeSet:
+      self.remove(obj)
+
+  # checkSink : void -> void
+  # Initiate a check of whether any SINK object is on any other object.
+  # If so, destroy them all.
+  def checkSink(self):
+    sinkSet = self.catGet('sink')
+    removeSet = set()
+
+    for obj in sinkSet:
+      sunk = False
+      for obj2 in self.data[obj.row][obj.col]:
+        if (obj2 != obj):
+          removeSet.add(obj2)
+          sunk = True
+
+      if (sunk):
+        removeSet.add(obj)
+
+    for obj in removeSet:
+      self.remove(obj)
+
+  # checkWin : void -> bool
+  # Initiate a check of whether you win or not.
+  def checkWin(self):
+    youSet = self.catGet('you')
+    winSet = self.catGet('win')
+    youCoord = set()
+    winCoord = set()
+
+    for obj in youSet:
+      youCoord.add((obj.row, obj.col))
+
+    for obj in winSet:
+      winCoord.add((obj.row, obj.col))
+
+    chkSet = youCoord.intersection(winCoord)
+    if (len(chkSet) > 0):
+      return True
+    return False
+
+  # checkFail : void -> bool
+  # Initiate a check of whether there are any YOU object on the board.
+  # If there is no YOU, well, you kind of lose.
+  def checkFail(self):
+    youSet = self.catGet('you')
+
+    if (len(youSet) == 0):
+      return True
+    return False
 
   # drawGrid : void -> void
   # Draws a grid, duh.
@@ -277,10 +423,33 @@ class Obj(object):
     self.isStop = False
     self.isPush = False
     self.isWin = False
-    self.isDeath = False
+    self.isDefeat = False
     self.isSink = False
-    self.isOpen = False
-    self.isShut = False
+
+  # category : void -> str set
+  # Returns a set of all catalog categories this object belongs to.
+  def category(self):
+    res = set()
+    res.add(self.type)
+    if (self.isYou):
+      res.add('you')
+    if (self.isStop):
+      res.add('stop')
+    if (self.isPush):
+      res.add('push')
+    if (self.isWin):
+      res.add('win')
+    if (self.isDefeat):
+      res.add('defeat')
+    if (self.isSink):
+      res.add('sink')
+    return res
+
+  # remove : void -> void
+  # Remove this instance.
+  def remove(self):
+    if (self.image):
+      self.image.visible = False
 
   # changeType : str -> void
   # Change the type of an object.
@@ -288,6 +457,8 @@ class Obj(object):
     self.type = typ.lower()
     self.path = 'sprites/' + self.type + '.png'
 
+  # draw : float * float -> void
+  # Draws or redraws this object on the given coords.
   def draw(self, x, y):
     if (self.image):
       self.image.visible = False
@@ -304,14 +475,10 @@ class Obj(object):
       self.isPush = val
     elif (prop == 'win'):
       self.isWin = val
-    elif (prop == 'death'):
-      self.isDeath = val
+    elif (prop == 'defeat'):
+      self.isDefeat = val
     elif (prop == 'sink'):
       self.isSink = val
-    elif (prop == 'open'):
-      self.isOpen = val
-    elif (prop == 'shut'):
-      self.isShut = val
 
 # The text class. A subclass of Obj.
 # Texts that constitutes rules.
@@ -325,6 +492,23 @@ class Text(Obj):
     self.textType = app.typeDict[self.textValue]
     self.isActive = False
     self.isIs = (self.textValue == 'is')
+
+  # category : void -> str set
+  # Returns a set of all catalog categories this object belongs to.
+  def category(self):
+    res = super(Text, self).category()
+    if (self.isIs):
+      res.add('is')
+    return res
+
+# The level class. A subclass of Obj.
+# Levels disguised as objects. Well.
+class Level(Obj):
+  # Init : str * int * int * str -> void
+  def __init__(self, typ, row, col, path):
+    super(Level, self).__init__(typ, row, col)
+    self.lvlPath = 'levels/' + path +'.txt'
+    self.isLevel = True
 
 # The rule class.
 # Each instance is a rule with a subject and a property.
@@ -345,6 +529,8 @@ class Rule(object):
 # all instances of the object type.
 # Text objects have 'text_' before their type.
 def loadBoard(path):
+  app.group.clear()
+  #app.undoLst = []
   file = open(path)
   lines = file.readlines()
   dim = lines[0].split(' ')
@@ -353,6 +539,7 @@ def loadBoard(path):
   board = Board(row, col)
 
   for line in lines[1:]:
+    line = line.rstrip()
     lst = line.split(' ')
     typ = lst[0]
     i = 1
@@ -362,12 +549,56 @@ def loadBoard(path):
       col = int(lst[i+1])
       i += 2
 
-      if ('_' in typ):
+      if ('-' in typ): # If it is a level
+        path = lst[i]
+        i += 1
+        board.add(Level(typ[4:], row, col, path))
+      elif ('_' in typ): # If it is a text
         board.add(Text(typ[5:], row, col))
-      else:
+      else: # Just a normal object
         board.add(Obj(typ, row, col))
 
   app.board = board
+  app.board.drawGrid()
+  app.board.drawBoard()
+  app.board.detectRule()
+  app.board.updateRule()
+
+  debug()
+
+# undo : void -> void
+# Undoes the last step.
+# Unused.
+#def undo():
+#  print('OK')
+#  if (len(app.undoLst) == 0):
+#    return
+#
+#  app.board = app.undoLst[-1]
+#  app.undoLst = app.undoLst[:-1]
+#
+#  app.board.drawGrid()
+#  app.board.drawBoard()
+#  app.board.detectRule()
+#  app.board.updateRule()
+
+# endScreen : bool -> void
+# Creates an end screen to tell if you win or lose.
+def endScreen(win):
+  app.endGroup = Group()
+  app.endGroup.add(Rect(0, 0, app.width, app.height, fill=rgb(24, 24, 24),
+    opacity=80))
+
+  if (win):
+    text = 'CONGRATULATIONS!'
+  else:
+    text = 'Uh... what now?'
+
+  app.endGroup.add(Label(text, app.width / 2, app.height / 2,
+    size=36, fill='cornSilk', font='monospace'))
+  app.endGroup.toFront()
+
+  app.end = True
 
 # initDict : void -> void
 # The type dictionary. For convenience.
