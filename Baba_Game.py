@@ -7,8 +7,35 @@ app.background = rgb(24, 24, 24)
 # Why not.
 def main():
   initDict()
-
   test()
+
+def move(dir):
+  # for i in range(app.board.row):
+  #   for j in range(app.board.col):
+  #     for obj in (app.board.data[i][j]):
+  for obj in (app.board.catalog['you']):
+    app.board.data[obj.row][obj.col].remove(obj)
+    if(dir == 'left'):
+      obj.col -= 1
+    elif (dir == 'right'):
+      obj.col += 1
+    elif (dir == 'up'):
+      obj.row -= 1
+    else: 
+      obj.row += 1
+    
+    app.board.data[obj.row][obj.col].append(obj)
+    app.board.drawBoard()
+
+def onKeyPress(key):
+  if (key == 'left'):
+    move('left')
+  elif (key == 'right'):
+    move('right')
+  elif (key == 'up'):
+    move('up')
+  elif (key == 'down'):
+    move('down')
 
 # test : void -> void
 # Why not?
@@ -180,8 +207,6 @@ class Board(object):
 
     self.deletedRules = self.ruleSet.difference(newRuleSet)
     self.ruleSet = newRuleSet
-
-
 
   # updateRule : void -> void
   # Primes an update of all properties on all objects.
