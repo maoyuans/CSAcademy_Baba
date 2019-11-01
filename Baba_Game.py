@@ -14,7 +14,7 @@ def main():
 # Why not?
 def test():
 
-  loadBoard('levels/00.txt')
+  loadBoard('levels/test.txt')
 
   app.board.drawGrid()
   app.board.drawBoard()

@@ -7,7 +7,7 @@ rock 2 8 4 8
 flag 12 1
 water 6 4 6 5 6 6 10 1 11 1 10 2 11 2 12 2 10 3 11 3 12 3
 text_baba 0 0
-text_win 0 2
+text_you 0 2
 text_wall 1 0
 text_stop 1 2
 text_water 2 0
@@ -16,4 +16,4 @@ text_rock 8 9
 text_push 8 11
 text_flag 11 9
 text_win 11 11
-text_is 0 1 1 1 2 1 9 10 11 10
+text_is 0 1 1 1 2 1 8 10 11 10
